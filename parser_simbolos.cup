@@ -1,0 +1,101 @@
+// parser.cup
+import java.util.*;
+import java_cup.runtime.*;
+
+parser code {:
+    SymbolTable tablaSimbolos = new SymbolTable();
+    int strCounter = 0; // Para generar identificadores únicos para strings
+:};
+
+action code {:
+    public void report_error(String message, Object info) {
+        System.err.println("ERROR: " + message);
+    }
+:};
+
+terminal String ID;
+terminal String TYPE;
+terminal String SEMICOLON;
+terminal String EQ;
+terminal String NUMBER;
+terminal String STRING_LITERAL;
+
+non terminal String program;
+non terminal String declaration;
+non terminal String declarations;
+non terminal String type;
+non terminal String value;
+non terminal String statement;
+non terminal String statements;
+
+start with program;
+
+program ::= statements:s
+          {:
+             System.out.println("Regla: program ::= statements");
+             System.out.println("       program ::= " + s);
+             System.out.println("Análisis sintáctico correcto.");
+             System.out.println("Tabla de símbolos:");
+             tablaSimbolos.print();
+             RESULT = s;
+          :};
+
+statements ::= statements:s1 statement:s2
+             {:
+                System.out.println("Regla: statements ::= statements statement");
+                System.out.println("       statements ::= " + s1 + " " + s2);
+                RESULT = s1 + "\n" + s2;
+             :}
+             | statement:s
+             {:
+                System.out.println("Regla: statements ::= statement");
+                System.out.println("       statements ::= " + s);
+                RESULT = s;
+             :};
+
+statement ::= declaration:d
+            {:
+               System.out.println("Regla: statement ::= declaration");
+               System.out.println("       statement ::= " + d);
+               RESULT = d;
+            :}
+            | value:v
+            {:
+               System.out.println("Regla: statement ::= value");
+               System.out.println("       statement ::= " + v);
+               RESULT = v;
+            :};
+
+declaration ::= type:decType ID:decId SEMICOLON
+              {: 
+                 System.out.println("Regla: declaration ::= type ID SEMICOLON");
+                 System.out.println("       declaration ::= " + decType + " " + decId + " ;");
+
+                 if (tablaSimbolos.exists(decId)) {
+                     System.err.println("Error: Variable '" + decId + "' ya declarada.");
+                 } else {
+                     tablaSimbolos.add(decId, decType);
+                 }
+
+                 RESULT = decType + " " + decId + " ;";
+              :};
+
+type ::= TYPE:type
+       {: 
+          System.out.println("Regla: type ::= TYPE");
+          System.out.println("       type ::= " + type);
+          RESULT = type; 
+       :};
+
+value ::= STRING_LITERAL:literalValue SEMICOLON
+        {: 
+           System.out.println("Regla: value ::= STRING_LITERAL SEMICOLON");
+           System.out.println("       value ::= " + literalValue + " ;");
+
+           String id = "__str" + (++strCounter);
+           if (!tablaSimbolos.exists(id)) {
+               tablaSimbolos.add(id, "string_literal: " + literalValue);
+           }
+
+           RESULT = literalValue + " ;";
+        :};
